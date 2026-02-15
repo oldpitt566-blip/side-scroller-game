@@ -63,7 +63,7 @@ speedOptionButtons.forEach(button => {
 
 
 let backgroundCloudImage = new Image();
-let backgroundCloudX = 0; // For parallax scrolling
+let backgrounds = [];
 let bulletImage = new Image(); // New: Image for bullets
 let appleImage = new Image(); // For score items
 let heartImage = new Image(); // For health items
@@ -214,6 +214,12 @@ function initGameImages() {
         if (loadedCount === totalImages) {
             player.imagesLoaded = true; // Still use this as a global flag for all images
             console.log("All game images loaded.");
+
+            // Initialize backgrounds array after image has loaded to get its width
+            if (backgrounds.length === 0 && backgroundCloudImage.width > 0) {
+                 backgrounds.push({ x: 0, image: backgroundCloudImage });
+                 backgrounds.push({ x: backgroundCloudImage.width, image: backgroundCloudImage });
+            }
         }
     };
     player.spriteStand.onload = onImageLoad;
@@ -539,34 +545,53 @@ function checkCollisions() {
 
 // On-screen button definitions
 const touchButtons = {
-    left: { x: 50, y: canvas.height - 80, width: 60, height: 60, path: null },
-    right: { x: 130, y: canvas.height - 80, width: 60, height: 60, path: null }
+    left: { path: new Path2D() },
+    right: { path: new Path2D() }
 };
 
 function drawTouchButtons() {
+    const buttonSize = 60;
+    const bottomMargin = 80;
+    
+    // Define button geometry dynamically based on current canvas size
+    const leftBtn = {
+        x: 50,
+        y: canvas.height - bottomMargin,
+        width: buttonSize,
+        height: buttonSize
+    };
+    const rightBtn = {
+        x: 130,
+        y: canvas.height - bottomMargin,
+        width: buttonSize,
+        height: buttonSize
+    };
+
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 3;
     
-    // Left Arrow
-    let left = touchButtons.left;
-    left.path = new Path2D();
-    left.path.rect(left.x, left.y, left.width, left.height);
-    ctx.stroke(left.path);
+    // --- Left Arrow ---
+    // Recreate the path for the left button for collision detection
+    touchButtons.left.path = new Path2D();
+    touchButtons.left.path.rect(leftBtn.x, leftBtn.y, leftBtn.width, leftBtn.height);
+    ctx.stroke(touchButtons.left.path);
+    // Draw the arrow shape
     ctx.beginPath();
-    ctx.moveTo(left.x + 40, left.y + 15);
-    ctx.lineTo(left.x + 20, left.y + 30);
-    ctx.lineTo(left.x + 40, left.y + 45);
+    ctx.moveTo(leftBtn.x + 40, leftBtn.y + 15);
+    ctx.lineTo(leftBtn.x + 20, leftBtn.y + 30);
+    ctx.lineTo(leftBtn.x + 40, leftBtn.y + 45);
     ctx.stroke();
 
-    // Right Arrow
-    let right = touchButtons.right;
-    right.path = new Path2D();
-    right.path.rect(right.x, right.y, right.width, right.height);
-    ctx.stroke(right.path);
+    // --- Right Arrow ---
+    // Recreate the path for the right button for collision detection
+    touchButtons.right.path = new Path2D();
+    touchButtons.right.path.rect(rightBtn.x, rightBtn.y, rightBtn.width, rightBtn.height);
+    ctx.stroke(touchButtons.right.path);
+    // Draw the arrow shape
     ctx.beginPath();
-    ctx.moveTo(right.x + 20, right.y + 15);
-    ctx.lineTo(right.x + 40, right.y + 30);
-    ctx.lineTo(right.x + 20, right.y + 45);
+    ctx.moveTo(rightBtn.x + 20, rightBtn.y + 15);
+    ctx.lineTo(rightBtn.x + 40, rightBtn.y + 30);
+    ctx.lineTo(rightBtn.x + 20, rightBtn.y + 45);
     ctx.stroke();
 }
 
@@ -683,6 +708,14 @@ function restartGame() {
     apples.length = 0;
     hearts.length = 0;
     monsters.length = 0; // Reset monsters
+
+    // Reset background positions
+    backgrounds.length = 0;
+    if (backgroundCloudImage.width > 0) {
+        backgrounds.push({ x: 0, image: backgroundCloudImage });
+        backgrounds.push({ x: backgroundCloudImage.width, image: backgroundCloudImage });
+    }
+
     player.y = canvas.height - player.originalHeight;
     player.isJumping = false;
     player.isCrouching = false;
@@ -706,14 +739,16 @@ function gameLoop() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw background clouds with parallax effect
+    // Draw background clouds with seamless scrolling
     if (player.imagesLoaded && backgroundCloudImage.complete && backgroundCloudImage.naturalWidth > 0) {
-        backgroundCloudX -= gameSpeed * 0.2; // Slower than foreground
-        if (backgroundCloudX <= -backgroundCloudImage.width) {
-            backgroundCloudX = 0;
+        for (const bg of backgrounds) {
+            bg.x -= gameSpeed * 0.2; // Slower than foreground
+            if (bg.x <= -backgroundCloudImage.width) {
+                // When a background moves fully off-screen, reposition it to the right of the other one
+                bg.x += 2 * backgroundCloudImage.width;
+            }
+            ctx.drawImage(bg.image, bg.x, 0, backgroundCloudImage.width, canvas.height);
         }
-        ctx.drawImage(backgroundCloudImage, backgroundCloudX, 0, backgroundCloudImage.width, canvas.height);
-        ctx.drawImage(backgroundCloudImage, backgroundCloudX + backgroundCloudImage.width, 0, backgroundCloudImage.width, canvas.height);
     }
 
     // Wait for images to load before starting the game
