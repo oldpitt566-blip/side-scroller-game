@@ -602,7 +602,6 @@ function handleInput() {
     // --- Touch Controls ---
     const touchesOnLeft = [...activeTouches].some(t => isPointInPath(touchButtons.left.path, t.clientX, t.clientY));
     const touchesOnRight = [...activeTouches].some(t => isPointInPath(touchButtons.right.path, t.clientX, t.clientY));
-    const touchesOnCrouch = [...activeTouches].some(t => t.clientX > canvas.width / 2 && t.clientY > canvas.height / 2);
 
     // --- Determine Player Actions ---
     // Horizontal Movement
@@ -625,8 +624,8 @@ function handleInput() {
         player.jump();
     }
     
-    // Crouching (Keyboard OR Touch)
-    player.crouch(keyState['ArrowDown'] || touchesOnCrouch);
+    // Crouching (Keyboard only)
+    player.crouch(keyState['ArrowDown']);
 }
 
 function isPointInPath(path, x, y) {
@@ -641,6 +640,19 @@ function isPointInPath(path, x, y) {
 // --- Event Listeners ---
 window.addEventListener('keydown', e => keyState[e.code] = true);
 window.addEventListener('keyup', e => keyState[e.code] = false);
+
+const upButton = document.getElementById('upButton');
+const downButton = document.getElementById('downButton');
+
+upButton.addEventListener('touchstart', (e) => { e.preventDefault(); player.jump(); }, { passive: false });
+upButton.addEventListener('mousedown', (e) => { e.preventDefault(); player.jump(); }, { passive: false });
+
+downButton.addEventListener('touchstart', (e) => { e.preventDefault(); player.crouch(true); }, { passive: false });
+downButton.addEventListener('mousedown', (e) => { e.preventDefault(); player.crouch(true); }, { passive: false });
+downButton.addEventListener('touchend', (e) => { e.preventDefault(); player.crouch(false); }, { passive: false });
+downButton.addEventListener('mouseup', (e) => { e.preventDefault(); player.crouch(false); }, { passive: false });
+downButton.addEventListener('mouseleave', (e) => { e.preventDefault(); player.crouch(false); }, { passive: false });
+
 
 function handleInteractionStart(event) {
     event.preventDefault();
